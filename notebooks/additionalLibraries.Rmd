@@ -1,0 +1,12 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Additional Libraries
+Based on debugging the installation of some of the miscellaneous packages mentioned above we will need these libraries:
+```{bash}
+sudo apt-get install libmariadbclient-dev
+sudo apt-get install libudunits2-dev
+sudo apt-get install libcairo2-dev
+```

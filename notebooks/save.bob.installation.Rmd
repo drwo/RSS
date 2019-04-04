@@ -1,0 +1,103 @@
+---
+title: "Installing RStudio Server on Ubuntu"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This notebook documents the steps for installing the open source version of RStudio Server on an Ubuntu 18xx VM in the VT cloud. This example installtion was accomplished on a "med" size VM with Ubuntu 18.04. 
+
+Prior to performing the installation steps we logged into the server.
+
+NOTE: You cannot run these chunks using the "Run current chunk" button the right. (At least I can't) You must execute them directly in the terminal window or use the Cmd-Option-Enter key combination on a slection.
+
+# Install R repository
+A this point we have logged into the server. The following commands install Ubuntu packages for R. First we need to add the source of the packages to the sources list. We also want to make sure we get the most recent R.
+```{bash}
+# note this requires 2FA
+sudo su -
+# https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
+apt-get update -y
+apt install -y apt-transport-https software-properties-common
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
+apt-get install r-base -y
+```
+
+Check to see what version of R is running by doing a little compute
+```{bash}
+R -e "v<-rep(pi,4)+6;v"
+```
+
+# Install 64-bit RStudio Server
+Need to do this as a non-root user.
+```{bash}
+apt-get install gdebi-core -y
+groupadd rstudio
+#using ruser as pwd
+adduser -ingroup rstudio ruser
+usermod -aG sudo ruser
+
+# get into ruser
+su ruser
+cd ~
+wget https://download2.rstudio.org/rstudio-server-1.1.463-amd64.deb
+sudo gdebi rstudio-server-1.1.463-amd64.deb
+exit
+```
+
+## Need to edit rserver.conf
+```{bash}
+##/etc/rstudio/rserver.conf
+echo "auth-required-user-group=rstudio" /etc/rstudio/rserver.conf
+# check that it is running, and go ahead and restart so it gets new conf
+systemctl status rstudio-server.service
+systemctl restart rstudio-server.service
+```
+
+# Need Apache and open port 8787
+RStudio Server listens on 8787 by default. We need to open that port. In order to do so we enable the ufw firewall. 
+
+In doing so we need to open port 22 for ssh. Failing to do so after enabling the firewall will prevent you from loggin back into the server.
+```{bash}
+# actually not sure you will need to do this
+ufw status verbose
+ufw enable
+ufw allow 22
+```
+
+Now lets open 8787
+```{bash}
+sudo ufw allow 8787
+sudo status verbose
+```
+
+# Verify Installation
+```{bash}
+sudo rstudio-server verify-installation
+sudo rstudio-server status
+
+## for final testing, need to add a local user
+## make sure local user is in rstudio group
+## hit web
+```
+
+# Need more packages for PDF
+```{bash}
+# https://www.edgarsdatalab.com/2017/11/24/setup-an-rstudio-server-in-ubuntu/
+# if above doesn't work, use tiny_tex from Yuhi in R <--- this was a saviour in my undergrad course, 100% success rate
+sudo apt-get -y install texinfo
+sudo apt-get -y install texlive-fonts-extra
+sudo apt-get -y install pandoc
+```
+
+```{bash}
+sudo apt-add-repository ppa:webupd8team/java
+sudo apt-get update
+sudo apt-get -y install oracle-java8-installer
+sudo apt-get -y install oracle-java8-set-default
+sudo apt-get update
+```
+
+
+

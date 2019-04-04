@@ -1,0 +1,325 @@
+---
+title: "Setting Up a Data Analysis in the VT Cloud"
+author:
+- Tom Woteki, Statistics, drwo@vt.edu, (TW)
+- Bob Settlage, Advanced Research Computing, rsettlag@vt.edu, (RS)
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+The VM host as of 3/19/2019 was: 172.23.60.104 named "rstudio.server"
+
+# Introduction
+This notebook documents the steps for setting up a powerful R-based data analysis server in the VT cloud. The procedures provided here were tested on a "med" size VM running Ubuntu 18.04. They should work on any of the available sizes of VMs running 18.04, although we have not tested the process on smaller servers.
+
+
+# Components and Order of Installation
+The following lists the included componenets and  the order in whcih they are installed:
+1) The latest version of R
+2) The latest open source version of RStudio Server (RSS). (The commercial version is RStudio Server Pro, installation of which we have not tested.)
+3) Several very useful R packages including shiny, for building shiy apps, and tidyverse, which comprises a number of useful packages including dplyr and ggplot2.
+4) MySQL, the open source relational database
+5) The latest version of the Java Virtual Machine for Ubuntu
+6) The linux librries need to knit rmarkdown notebooks and documents to PDFs
+
+NOTE: Once you have installed RSS and assuming port 8787 is open on the VM (see below) you should log into RSS on the VM and contiue the insallation process there. This will ensure that you are installing the remaining R packages and linux pzckages on the VM, not on your local machine. This is not strictly necessary if you observe the need to be logged into the VM via the terminal window to install any linux libraries and run R from the VM command line to install any R pacakges.
+
+# References
+The following articles are the sources we consulted to develop this installation kit. There is a great deal of overlap among these guides but also some differences. The installation process tested here is a composite of information from these references and steps that Bob Settlage and I previously tried out.
+
+1) https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
+2) https://rtask.thinkr.fr/blog/installation-of-r-3-5-on-ubuntu-18-04-lts-and-tips-for-spatial-packages/
+3) https://cran.r-project.org/bin/linux/ubuntu/
+4) https://www.edgarsdatalab.com/2017/11/24/setup-an-rstudio-server-in-ubuntu/
+5) https://linuxize.com/post/how-to-install-mysql-on-ubuntu-18-04/
+
+
+# Installing the R Repository
+
+Notes:
+Prior to performing the installation steps log into the server from the terminal command line in the terminal window. However, you will not able to run the code chunks using the "Run current chunk" buttons on the right. Either use the Cmd-Option-Enter key combination on a selection or cut and paste the code to the terminal window.
+
+The following commands install the Ubuntu packages for R. The commands mirror those found in references 1 and 2 above. First we need to add the source of the packages to the sources list. We also want to make sure we get the most recent R, which should be 3.5 as of March 19, 2019.
+```{bash}
+# NOTE: prior to any of this we logged into the VM via ssh in the terminal window
+# su to root. note this requires 2FA
+sudo su -
+
+apt-get update -y
+# Install the packages necessary to add a new repository over HTTPS:
+apt install -y apt-transport-https software-properties-common
+# Enable the CRAN repository and add the CRAN GPG key to the system
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/'
+# Now that the repository is added, update the packages list and install the R package
+apt update
+apt upgrade
+apt-get install r-base r-base-core r-recommended -y
+# exit root for now and remain in the terminal window
+exit
+```
+
+Check to see what version of R is running and do a little computing. It should be the latest version, which as of 3/19/19 is 3.5.x.
+```{bash}
+R -e "v<-rep(pi,4)+6;v"
+```
+
+# Install 64-bit RStudio Server
+At this point R is installed. If you are still inthe R shell quit it.
+
+Set up a group rstudio and a user called rstudio to be in that group. Set the password for rstudio to be rstudio. This will give you a simple way to allow anyone to log into RSS for a test drive. You shold also add yourself, the administrator of the VM, to group rstudio. First log in as root.
+```{bash}
+sudo su -
+apt-get install gdebi-core -y
+groupadd rstudio
+# set password for user rstudio = rstudio
+adduser -ingroup rstudio rstudio
+# add user rstudio to the sudo group
+usermod -aG sudo rstudio
+# need to add myself to group rstudio
+```
+
+>>>>> This needs to be checked or debugged
+Now log in as user rstudio and get RStudio Server.
+```{bash}
+# log in as rstudio
+sudo su rstudio
+cd ~
+wget https://download2.rstudio.org/rstudio-server-1.1.463-amd64.deb
+sudo gdebi rstudio-server-1.1.463-amd64.deb
+# you are exiting from being logged in as rstudio
+exit
+```
+
+## Edit rserver.conf
+Here we modify /etc/rstudio/etc such that one must be a member of the group rstudio in order to log into RSS.
+
+Note: we are still logged in as root
+```{bash}
+##/etc/rstudio/rserver.conf
+chmod 777 /etc/rstudio/rserver.conf
+echo "auth-required-user-group=rstudio" >> /etc/rstudio/rserver.conf
+chmod 755 /etc/rstudio/rserver.conf
+# check that it is running, and go ahead and restart so it gets new conf
+systemctl status rstudio-server.service
+systemctl restart rstudio-server.service
+```
+
+## Need Apache and open port 8787
+RStudio Server listens on 8787 by default. We need to open that port. In order to do so we enable the ufw firewall. 
+
+In doing so we need to open port 22 for ssh. Failing to do so after enabling the firewall will prevent you from logging back into the server.
+
+Note: we are still logged in as root
+```{bash}
+# actually not sure you will need to do this
+ufw status verbose
+ufw enable
+ufw allow 22
+```
+
+Now lets open 8787 and verify the open ports:
+```{bash}
+ufw allow 8787
+ufw status verbose
+```
+
+## Verify RStudio Server Installation
+Now we verify installation. After exiting as root you will need to authenticate as user rstudio whose password is rstudio.
+```{bash}
+# exit root
+exit
+rstudio-server verify-installation
+rstudio-server status
+
+## for final testing, need to add a local user
+## make sure local user is in rstudio group
+## hit web
+```
+
+With RStudio Server installed the rest of the installations are most easily done using the terminal window of RSS on the cloud machine. Therefore we rocmmend logging into RSS in the cloud and importing this 
+# Install Selected R Packages
+This section installs some selected packages into the R site-wide library.
+
+## Install Rcpp
+The first package to install is Rcpp which is needed to compile packages that are written in C++, such as dplyr. In order to install into the site library we need to log in as root.
+```{bash}
+# requires 2FA
+sudo su -
+
+R
+install.packages("Rcpp")
+```
+
+Next we install selected packages while still logged in as root. In order to ensure a problem free installation  we install each package individually to catch any errors that might occur such as missing packages or libraries.
+
+## Install "tidyverse"
+The first package we install is "tidyverse".
+
+Tidyverse is an extremely useful package. We highly recommend that it be a standard part of an R installation. The tidyverse comprises many other packages: broom, cli, crayon, dbplyr, dplyr, forcats, ggplot2, haven, hms, httr, jsonlite, lubridate, magrittr, modelr, pillar,purrr, readr, readxl, reprex, rlang, rstudioapi, rvest, stringr, tibble, tidyr, xml2, tidyverse.
+
+See: https://tidyverse.tidyverse.org/reference/tidyverse_packages.html
+
+In debugging the installation of tidyverse we know that we need to get the following linux pacakges: libssl-dev, libxml2-dev, libcurl4-openssl-dev. So we need to exit R and install these.
+```{r exit.r}
+q()
+```
+```{bash}
+# we are still logged in as root
+sudo apt-get install libssl-dev
+sudo apt-get install libxml2-dev
+sudo apt-get install libcurl4-openssl-dev
+```
+
+We are now ready to do a clean install of tidyverse. The installation is time consuming and the output is voluminous.
+Note: from above we are still logged in as root. 
+```{r}
+# renter R as root. Doing so installs the pacakges in the site-wide library
+R
+install.packages("tidyverse")
+```
+
+Check to see if world of the tidyverse has been installed in the site library:
+```{r}
+pkgs <- c("broom", "cli", "crayon", "dbplyr", "dplyr", "forcats", "ggplot2", "haven", "hms", "httr", "jsonlite", 
+          "lubridate", "magrittr", "modelr", "pillar", "purrr", "readr", "readxl", "reprex", "rlang", 
+          "rstudioapi", "rvest", "stringr", "tibble", "tidyr", "xml2", "tidyverse")
+find.package(pkgs)
+```
+
+## Install Additional Pacakges
+These are packages that THW has found usefull in many circumstances. They can be installed now or later, whether in the site-wide library or otherwise. Here we are installing them site-wide.
+
+### rmarkdown
+Note: we are still logged in as root using R
+```{r}
+install.packages("rmarkdown")
+```
+
+### knitr
+```{r}
+install.packages("knitr")
+```
+
+### shiny
+This throws a lot of warnings regarding deprecated declarations but the installation seems to conclude successfully. However, we have not tested this.
+```{r}
+install.packages("shiny")
+```
+
+### data.table
+```{r}
+install.packages("data.table")
+```
+
+### RMySQL
+I use MySQL as an open source relational database. Installation of MySQL is not covered here. This requires libmariadbclient-dev. Exit R and get:
+```{bash}
+sudo apt-get install libmariadbclient-dev
+```
+Renter R and install:
+```{r}
+install.packages("RMySQL")
+```
+
+### ggmap & maptools
+These are handy for developing map graphics and visualizations. Installation of maptools throws some warnings but appears to install successfully but I have not yet tested it.
+```{r}
+install.packages("ggmap")
+install.packages("maptools")
+```
+
+### ineq
+```{r}
+install.packages("ineq")
+```
+### Some Additional Packages
+These are some additional packages I have found useful feom time to time but I do not install them here: DT, DBI, RSQLite, tcltk2, sqldf, boot, Cairo, rgdal, tmap, rgeos. Some of these require additional libraries which if not present will cause errors upon attempting to do the installations. You can then get the libraries with "sudo ap-get install <xxx>" and properly install the desired R package.
+
+
+# Notes for Work in Progress
+## Need more packages for PDF
+```{bash}
+# https://www.edgarsdatalab.com/2017/11/24/setup-an-rstudio-server-in-ubuntu/
+# if above doesn't work, use tiny_tex from Yuhi in R <--- this was a saviour in my undergrad course, 100% success rate
+```
+Reference 4
+Needs these R packages: caTools, bitops, rprojroot
+
+# MySQL Installation (Ref 5)
+I use MySQL as my relational database. This is a simple installation procedure copied from reference 5. It sets up a MySQL administrator account, mysql, with root privileges. The same commands can be used to grant the VM's owner root privileges.
+```{bash}
+# login as root
+sudo su -
+# update apt package index and upgrade
+apt update
+apt upgrade
+apt install mysql-server
+systemctl status mysql
+```
+Now that mysql is running let's secure it and set up administrator accounts. Note we are still logged in as root. We are not going to configure the VALIDATE_PASSWORD_PLUGIN. Admittedly not as secure as using it. A matter of preference. It does restrict root user to the local machine but allows other users, with proper permissions, to access mysql remotely. We also choose to:
+
+1) Remove anonymous users
+2) Disallow root login remotely
+3) Remove test databasess tables
+4) Reload privilege
+
+```{bash}
+# secure the installation with a strong password with options as above and exit
+mysql_secure_installation
+```
+Now log into mysql as root.
+```{bash}
+sudo mysql
+```
+Now change the authentication method from auth_socket to mysql_native_password. See Ref 5.
+```{mysql}
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_strong_password_goes_here';
+FLUSH PRIVILEGES;
+```
+Exit and log back into mysql as root. Note: you are not logged in to the VM as root at this point.
+```{mysql}
+exit
+mysql -u root -p
+```
+
+Now set up an administrator account with root type privileges:
+```{mysql}
+GRANT ALL PRIVILEGES ON *.* TO 'mysql'@'localhost' IDENTIFIED BY 'MySQL!Warrior';
+```
+Exit mysql and log in as the administrator:
+```{bash}
+exit
+mysql -u mysql -p
+```
+Note that the admin account we set up is for local log in only. To set up a user that can log in from any where execute the following command as the administrator:
+CREATE USER 'some_user'@'%' IDENTIFIED BY 'user_password'
+
+# JVM Installation
+Reference 4
+
+# Installion of PDF Knitting (Ref 4)
+The following packages will enable kinitting notebooks and rmarkdown documents to PDFs. The 2nd command, downloading fonts and other items, will take a few minutes.
+```{r}
+install.packages(c("caTools", "bitops", "rprojroot"))
+```
+
+```{bash}
+sudo apt-get -y install texinfo
+sudo apt-get -y install texlive-fonts-extra
+sudo apt-get -y install pandoc
+```
+
+
+Test if you can knit to a PDF. Try with a separate test document. You need to be logged into the VM via RStudio Server on port 8787. Attempting to knit to this document involves executing all of the code chunks.
+
+## Additional Libraries
+Based on debugging the installation of some of the miscellaneous pacakges mentioned above we will need these libraries:
+```{bash}
+sudo apt-get install libmariadbclient-dev
+sudo apt-get install libudunits2-dev
+sudo apt-get install libcairo2-dev
+```

@@ -1,0 +1,68 @@
+---
+title: "Installing RStudio Server"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This notebook documents the steps for installing the open source version of RStudio Server on an Ubuntu-based VM in the VT cloud. This example installtion was accomplished on a "micro" size VM with Ubuntu 18.x. The installation process is taken from documentation at https://www.rstudio.com/products/rstudio/download-server/
+
+Prior to performing the installation steps we logged into the server.
+
+NOTE: You cannot run these chunks using the "Run current chunk" button the right. (At least I can't) You must execute them directly in the terminal window or use the Cmd-Option-Enter key combination on a slection.
+
+# Install R repository
+A this point we have logged into the server. The following commands install Ubuntu packages for R. First we need to add the source of the packages to the sources list. Rather than modify /etc/apt.source.list we add a source file to sources.list.d
+```{bash}
+cd /etc/apt
+sudo chmod 777 sources.list.d
+cd sources.list.d
+sudo echo "deb https://cloud.r-project.org/bin/linux/ubuntu cosmic-cran35/" >> rstudio.list
+cat rstudio.list
+```
+
+Now install the R system:
+```{bash}
+sudo apt-get update
+sudo apt-get install r-base
+```
+
+Check to see if R is running
+```{bash}
+R --version
+R
+q("no")
+```
+
+# Install 64-bit RStudio Server
+```{bash}
+sudo apt-get install gdebi-core
+wget https://download2.rstudio.org/rstudio-server-1.1.463-amd64.deb
+sudo gdebi rstudio-server-1.1.463-amd64.deb
+```
+
+# Verify Installation
+Check to see if RStudio Server is running. Note that the status command starts the server.
+```{bash}
+sudo rstudio-server verify-installation
+sudo rstudio-server status
+```
+
+# Open port 8787
+RStudio Server listens on 8787 by default. We need to open that port. In order to do so we enable the ufw firewall. 
+
+In doing so we need to open port 22 for ssh. Failing to do so after enabling the firewall will prevent you from loggin back into the server.
+```{bash}
+sudo ufw status verbose
+sudo ufw enable
+sudo ufw allow 22
+```
+
+Now lets open 8787
+```{bash}
+sudo ufw allow 8787
+sudo status verbose
+```
+
+
+
