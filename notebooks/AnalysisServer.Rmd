@@ -14,7 +14,7 @@ knitr::opts_chunk$set(eval=FALSE)
 ```
 
 # Introduction
-This notebook documents the steps for setting up a powerful R-based data analysis server on a virtual machine (VM) hosted in the VT cloud or  on a late model, multi-core Mac laptop or desktop or equivalent. Once you have completed these steps you will have a VM running the latest versions of R and RStudio Server, repsectively, plus the pacakges needed for data wrangling, plotting and deep learning, and access to all the statistical analysis pacakges that are available under R. 
+This notebook documents the steps for setting up a powerful R-based data analysis server on a virtual machine (VM) hosted in the VT cloud or  on a late model, multi-core Mac laptop or desktop or equivalent. Once you have completed these steps you will have a VM running the latest versions of R and RStudio Server plus the packages needed for data wrangling, plotting and deep learning, and access to all the statistical analysis packages that are available under R. 
 
 The procedures provided here were tested in two steps involving both of these configurations:
 
@@ -25,9 +25,9 @@ For installation on a VM in the VT cloud you will need an account provided by VT
 
 [^1]:By default VMWare  allocates 1 gigabyte of memory and 1 core to the VM. For the installation described here we allocated 2 cores and 8 gigabytes of memory to the VM. One gigabyte of memory is not sufficient to compile some of the packages required for a successful installation. Less than 8 gigabytes of memory may be sufficient but we have not tested that.
 
-This guide was developed from scripts and discussions available in the public domain. References are provided below. Some of the sections indicate in the section heading which references were the primary sources.
+This guide was developed from scripts and discussions available in the public domain. References are provided below. In the section headings of some sections we have indicated which references were the primary sources.
 
-If you are reading this guide as a pdf you can pull the original R Notebook from which it was produced at Woteki's git repository: . We recommend you download it and import it into RStudio on your local machine and conveniently perform the installation step by step from there. If you have any suggestions or find any errors you can push your comments back to git for incorporation into a later version.
+If you are reading this guide as a pdf you can pull the original R Notebook from which it was produced at Woteki's git repository: https://github.com/drwo/RSS. We recommend you download it and import it into RStudio on your local machine and conveniently perform the installation step by step from there. If you have any suggestions or find any errors you can push your comments back to git for incorporation into a later version.
 
 ## Components and Order of Installation
 The following are the components and the order in which they are installed:
@@ -40,14 +40,28 @@ The following are the components and the order in which they are installed:
 [^2]:The commercial version of RStudio Server is licensed.
 
 ## Installing From the "bash" Shell
-Almost all of the installation process is accomplished using bash shell commands in a terminal window connected to the VM. You should have some familiarity with the bash shell, especially since most of the commands are executed with "root" privileges, meaning that you have unrestricted control over the VM. Root privileges are required for most of the installation steps, for example installing various linux libraries [^3].
+Almost all of the installation process is accomplished using bash shell commands in a terminal window connected to the VM. You should have some familiarity with the bash shell, especially since most of the commands are executed with "root" privileges, meaning that you have unrestricted control over the VM and can render it inoperable. Root privileges are required for most of the installation steps, for example installing various Linux libraries [^3].
 
-[^3]:Should you "damage" the VM beyond repair, such as erroneously removing a key system directory making it impossible to reboot the machine, the easisest thing to do woould be to discard the VM and start over with a new one.
+[^3]:Should you render the VM inoperable, such as erroneously removing a key system directory making it impossible to reboot the machine, the easiest thing to do would be to discard the VM and start over with a new one.
 
-Prior to performing the installation steps you should ssh into the destination VM from your terminal. We recommend running each command separately, rather than running  entire chunks as a whole so that you can see the result of each comand more easily. Either use the Cmd-Option-Enter key combination on a command selection or cut and paste the code to your terminal window.
+Prior to performing the installation steps you should ssh into the destination VM from your terminal. We recommend running each command separately, rather than running  entire chunks as a whole so that you can see the result of each command more easily. Either use the Cmd-Option-Enter key combination on a command selection or cut and paste the code to your terminal window.
 
 ## Installing R Packages
-As mentioned above, a number of useful R pacakges are installed as part of this process. These installations are done from the R console using the install.packages function. We have specfied the library path for installation so that these packages are installed in a site-wide library and available to all users by default. 
+As mentioned above, a number of useful R packages are installed as part of this process. These installations are done from the R console using the install.packages function. We have specified the library path for installation so that these packages are installed in a site-wide library and available to all users by default. 
+
+## Preliminaries: Setting up an SSH Server - VMWare VM Only
+If you are performing this installationon a VM hosted under VMWare you need to install the ssh service before you can ssh into the server.
+
+First log onto the VM directly from VMWare, then execute these commands from its Terminal app:
+```{bash}
+sudo apt-get install openssh-server
+```
+
+Now go to the Settings app on the VM and find the IP address of the server. Now proceed to ssh into your VM from the terminal window here:
+```{bash}
+ssh <your_user_name>@<your_vm_ip_address>
+```
+
 
 # 1. Installing R (References 1 and 2)
 
@@ -93,7 +107,7 @@ groupadd rstudio
 adduser -ingroup rstudio rstudio
 # add user rstudio to the sudo group. This gives user rstudio root privileges.
 usermod -aG sudo rstudio
-# add yourelf to group rstudio
+# add yourself to group rstudio
 usermod -aG rstudio <your_user_id>
 ```
 
@@ -113,7 +127,7 @@ Here we modify /etc/rstudio/rserver.conf so that one must be a member of the gro
 # you should still be logged in as root
 # make /etc/rstudio/rserver.conf writeable
 chmod 777 /etc/rstudio/rserver.conf
-# insert the line tht requires membership in group rstudio
+# insert the line that will require membership in group rstudio
 echo "auth-required-user-group=rstudio" >> /etc/rstudio/rserver.conf
 chmod 755 /etc/rstudio/rserver.conf
 # check that RSS is running, and restart so it gets new conf
@@ -125,10 +139,10 @@ RSS is now up and running.
 
 ## 2.4 Firewalls and Ports 22 and 8787 (As of April 2, 2019)
 
-Thre are 2 firewalls that control access to ports on your VM. Ports are the entry point to services such as RSS; RSS listens on port 8787 by default. Your Ubuntu VM comes equipped with a firewall called ufw that you can optionally activate as described below. There is also a firewall on the VT network that sits in front of your VM which likewise controls access to services on your VM. In order for you to log into RSS on the VT VM, port 8787 must be open on the VM and on the network. The following is the default situation depending on where your VM is hosted:
+There are 2 firewalls that control access to ports on your VM. Ports are the entry point to services such as RSS; RSS listens on port 8787 by default. Your Ubuntu VM comes equipped with a firewall called ufw that you can optionally activate as described below. There is also a firewall on the VT network that sits in front of your VM which likewise controls access to services on your VM. In order for you to log into RSS on the VT VM, port 8787 must be open on the VM and on the network. The following is the default situation depending on where your VM is hosted:
 
-1) If your VM is running under VMWare hosted on a local machine, as described in the introduction, ufw is inactive upon installation and all ports are open. Therefore, you have been able to log in via ssh and you can log into RSS without taking further action. If you choose to activate the firewall you need to open ports 22 (for ssh) and 8787 (for RSS) and any other ports that are required for your applcaitions, such as 80 for websites, 3306 for MySQL (discussed below), etc.
-2) If your VM is in the VT cloud ufw is inactive by default and port 22 is open on the network by default. Therefore you have been able to log into the VM via ssh. However, in order to log into RSS you must request port 8787 be opened on the network along with any other ports you might want.
+1) If your VM is running under VMWare hosted on a local machine, as described in the introduction, ufw is inactive upon installation and all ports are open. Therefore, you have been able to log in via ssh and you can log into RSS at port 8787 without taking further action. If you choose to activate the firewall you need to open ports 22 (for ssh) and 8787 (for RSS) and any other ports that are required for your applications, such as 80 for websites, 3306 for MySQL (discussed below), etc.
+2) If your VM is in the VT cloud, ufw is inactive by default and port 22 is open on the network by default. Therefore you have been able to log into the VM via ssh. However, in order to log into RSS you must request port 8787 be opened on the network along with any other ports you might want.
 
 Since all ports on the VM are open by default in either case, activating the ufw firewall on the VM is optional. The following commands will activate the firewall and open ports 22 and 8787. If you do activate the VM's firewall be certain to open port 22. Otherwise you will not be able to log back into the VM even though the port is open on the network.
 
@@ -153,7 +167,7 @@ rstudio-server verify-installation
 rstudio-server status
 ```
 
-Now that you have successfully installed RSS you should log into it on your VM using http://your_VMs_ip_address:8787 to complete the rest of the installation process. You can log into the server as user rstudio but we recommend you log in with your user id. This assumes you added yourself to the group rstudio as recommended above. Logging into RSS on the VM ensures that all R commands will be executed on the server as will all shell commands from the terminal window.
+Now that you have successfully installed RSS you should log into it on your VM using http://<your_VMs_ip_address>:8787 to complete the rest of the installation process. You can log into the server as user rstudio but we recommend you log in with your user id. This assumes you added yourself to the group rstudio as recommended above. Logging into RSS on the VM ensures that all R commands will be executed on the server as will all shell commands from the terminal window.
 
 # 3. Install Selected R Packages
 This section installs some selected packages into the R site-wide library.
@@ -196,7 +210,7 @@ Tidyverse is an extremely useful package. We highly recommend that it be a stand
 
 See: https://tidyverse.tidyverse.org/reference/tidyverse_packages.html
 
-In debugging the installation of tidyverse we know that we need to get the following linux packages: libssl-dev, libxml2-dev, libcurl4-openssl-dev. So we need to exit R and install these.
+In debugging the installation of tidyverse we know that we need to get the following Linux packages: libssl-dev, libxml2-dev, libcurl4-openssl-dev. So we need to exit R and install these.
 ```{r exit.r}
 q()
 ```
@@ -272,7 +286,7 @@ install.packages("ineq")
 ```
 
 ### Packages for Knitting PDFs (Ref 4)
-Installation of the following packages for R and linux will enable knitting notebooks and rmarkdown documents to PDFs.
+Installation of the following packages for R and Linux will enable knitting notebooks and rmarkdown documents to PDFs.
 ```{r}
 install.packages(c("caTools", "bitops", "rprojroot"))
 ```
@@ -301,7 +315,7 @@ systemctl status mysql
 Now that mysql is running let's secure it and set up administrator accounts. As matter of preference, we are not going to configure the VALIDATE_PASSWORD_PLUGIN, which is not as secure as using it. We also choose to:
 
 1) Remove anonymous users
-2) Disallow root to login remotely
+2) Disallow root to log in remotely
 3) Remove test databases tables
 4) Reload privileges
 
@@ -353,7 +367,7 @@ The following articles are the sources we consulted to develop this installation
 
 1) https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
 2) https://rtask.thinkr.fr/blog/installation-of-r-3-5-on-ubuntu-18-04-lts-and-tips-for-spatial-packages/
-3) https://cran.r-project.org/bin/linux/ubuntu/
+3) https://cran.r-project.org/bin/Linux/ubuntu/
 4) https://www.edgarsdatalab.com/2017/11/24/setup-an-rstudio-server-in-ubuntu/
 5) https://linuxize.com/post/how-to-install-mysql-on-ubuntu-18-04/
 
