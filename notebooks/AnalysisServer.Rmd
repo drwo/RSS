@@ -14,12 +14,12 @@ knitr::opts_chunk$set(eval=FALSE)
 ```
 
 # Introduction
-This notebook documents the steps for setting up a powerful R-based data analysis server on a virtual machine (VM) hosted in the VT cloud or  on a late model, multi-core Mac laptop or desktop or equivalent. Once you have completed these steps you will have a VM running the latest versions of R and RStudio Server plus the packages needed for data wrangling, plotting and deep learning, and access to all the statistical analysis packages that are available under R. 
+This notebook documents the steps for setting up a powerful R-based data analysis server on a virtual machine (VM) hosted in VT's on-premises cloud or  on a late model, multi-core Mac laptop or desktop or equivalent. Once you have completed these steps you will have a VM running the latest versions of R and RStudio Server plus the packages needed for data wrangling, plotting and deep learning, and access to all the statistical analysis packages that are available under R. 
 
-The procedures provided here were tested in two steps involving both of these configurations:
+The procedures provided here were tested for both of these configurations:
 
-1) First on a VM running Ubuntu 18.04 hosted by VMWare running on a late model multi-core Mac Pro laptop.
-2) Then on a "med" size VM running Ubuntu 18.04 in the VT cloud. The procedures should work on any of the available sizes of VMs running 18.04, although we have not tested them on smaller servers.
+1) On a VM running Ubuntu 18.04 hosted by VMWare running on a late model multi-core Mac Pro laptop.
+2) On a "med" size VM running Ubuntu 18.04 in the VT cloud. The procedures should work on any of the available sizes of VMs running 18.04, although we have not tested them on smaller servers.
 
 For installation on a VM in the VT cloud you will need an account provided by VT's Advanced Research Computing (ARC) team. Installation of VMWare, which is licensed software, and installation of an Ubuntu VM hosted by VMWare are not covered here [^1]. 
 
@@ -27,7 +27,7 @@ For installation on a VM in the VT cloud you will need an account provided by VT
 
 This guide was developed from scripts and discussions available in the public domain. References are provided below. In the section headings of some sections we have indicated which references were the primary sources.
 
-If you are reading this guide as a pdf you can pull the original R Notebook from which it was produced at Woteki's git repository: https://github.com/drwo/RSS. We recommend you download it and import it into RStudio on your local machine and conveniently perform the installation step by step from there. If you have any suggestions or find any errors you can push your comments back to git for incorporation into a later version.
+If you are reading this guide as a pdf you can pull the original R Notebook from which it was rendered at Woteki's git repository: https://github.com/drwo/RSS. We recommend you download it and import it into RStudio on your local machine and conveniently perform the installation step by step from there. If you have any suggestions or find any errors you can push your comments back to git for incorporation into a later version.
 
 ## Components and Order of Installation
 The following are the components and the order in which they are installed:
@@ -44,20 +44,20 @@ Almost all of the installation process is accomplished using bash shell commands
 
 [^3]:Should you render the VM inoperable, such as erroneously removing a key system directory making it impossible to reboot the machine, the easiest thing to do would be to discard the VM and start over with a new one.
 
-Prior to performing the installation steps you should ssh into the destination VM from your terminal. We recommend running each command separately, rather than running  entire chunks as a whole so that you can see the result of each command more easily. Either use the Cmd-Option-Enter key combination on a command selection or cut and paste the code to your terminal window.
+Prior to performing the installation steps you should ssh into the destination VM from the terminal within RStudio. We recommend running each command separately, rather than running  entire chunks as a whole so that you can see the result of each command more easily. Either use the Cmd-Option-Enter key combination on a command selection or cut and paste the code to the terminal window.
 
 ## Installing R Packages
 As mentioned above, a number of useful R packages are installed as part of this process. These installations are done from the R console using the install.packages function. We have specified the library path for installation so that these packages are installed in a site-wide library and available to all users by default. 
 
 ## Preliminaries: Setting up an SSH Server - VMWare VM Only
-If you are performing this installationon a VM hosted under VMWare you need to install the ssh service before you can ssh into the server.
+If you are performing this installation on a VM hosted under VMWare you need to install the ssh service before you can ssh into the server.
 
 First log onto the VM directly from VMWare, then execute these commands from its Terminal app:
 ```{bash}
 sudo apt-get install openssh-server
 ```
 
-Now go to the Settings app on the VM and find the IP address of the server. Now proceed to ssh into your VM from the terminal window here:
+Now go to the Settings app on the VM and find the IP address of the server. Then proceed to ssh into the VM from the terminal window:
 ```{bash}
 ssh <your_user_name>@<your_vm_ip_address>
 ```
@@ -95,21 +95,34 @@ R -e "v<-rep(pi,4)+6;v"
 # 2. Install 64-bit RStudio Server (RSS)
 At this point R is installed. If you are still in the R shell quit it.
 
-## 2.1 Create User & Group rstudio
-First set up a group called "rstudio" and a user "rstudio" to be in that group. Set the password for the user to be rstudio. This will give you a simple way to allow anyone to log into RSS on the VM for a test drive. Furthermore, below we are going set up the server so that only members of the group rstudio can log into RSS. Therefore you should also add yourself, the administrator of the VM, to group rstudio. 
+## 2.1 Create Users & Group
+We are going to set up a group "rstudio" and create two user accounts, "rstudio" and "ruser":
 
-First log in as root again.
+1) The group rstudio will define which users can log into RSS. That is, users will have to be members of this group in order to log into RSS.
+2) The user rstudio will be the account you use to administer RSS, specifically to add R packages to a site-wide library so that they are accessible to all users [^4]. This user will be in the group rstudio. You should pick a strong password for this user.
+3) The user called ruser, with password "ruser", will be a member of the rstudio group. You can use this user name to allow anyone to log into RSS and take it for a test drive.
+
+[^4]: You can always log in with root privileges to add packages to the site-wide library. Doing so as user rstudio will make it more convenient to do so.
+
+In addition to the above you need to add yourself to the rstudio group so that you can log into RSS.
+
+First set up the group and user "rstudio". Log in as root again:
 ```{bash}
 sudo su -
 apt-get install gdebi-core -y
 groupadd rstudio
-# in response to the adduser command set the password for user rstudio = rstudio
+# in response to the adduser command set a strong password for user rstudio.
 adduser -ingroup rstudio rstudio
 # add user rstudio to the sudo group. This gives user rstudio root privileges.
 usermod -aG sudo rstudio
-# add yourself to group rstudio
-usermod -aG rstudio <your_user_id>
 ```
+
+Now set up the user "ruser" with password "ruser":
+```{bash}
+adduser -ingroup rstudio ruser
+```
+
+Be sure to add yourself to the rstudio group: usermod -aG rstudio <your_user_name>.
 
 ## 2.2 Install RStudio Server
 Now install RStudio Server. You should be logged in as root.
@@ -120,8 +133,16 @@ wget https://download2.rstudio.org/rstudio-server-1.1.463-amd64.deb
 gdebi rstudio-server-1.1.463-amd64.deb
 ```
 
+Verify the RSS installation:
+```{bash}
+# this should return no output
+rstudio-server verify-installation
+# this should tell you that RSS is running
+rstudio-server status
+```
+
 ## 2.3 Edit rserver.conf
-Here we modify /etc/rstudio/rserver.conf so that one must be a member of the group rstudio in order to log into RSS. As noted above, you should have added yourself to this group.
+Here you modify /etc/rstudio/rserver.conf so that one must be a member of the group rstudio in order to log into RSS. As noted above, you should have added yourself to this group.
 
 ```{bash}
 # you should still be logged in as root
@@ -129,26 +150,32 @@ Here we modify /etc/rstudio/rserver.conf so that one must be a member of the gro
 chmod 777 /etc/rstudio/rserver.conf
 # insert the line that will require membership in group rstudio
 echo "auth-required-user-group=rstudio" >> /etc/rstudio/rserver.conf
+# return /etc/rstudio/rserver.conf to its original permissions
 chmod 755 /etc/rstudio/rserver.conf
-# check that RSS is running, and restart so it gets new conf
-systemctl status rstudio-server.service
+# restart RSS is running so it gets the new conf
+#systemctl status rstudio-server.service
 systemctl restart rstudio-server.service
 ```
 
-RSS is now up and running.
+RSS is now up and running and completely configured. Test logging into RSS as yourself and the other two users. Enter http://<your_VM_ip_address_here>:8787
 
-## 2.4 Firewalls and Ports 22 and 8787 (As of April 2, 2019)
+## 2.4 Firewalls and Ports 22 and 8787
 
-There are 2 firewalls that control access to ports on your VM. Ports are the entry point to services such as RSS; RSS listens on port 8787 by default. Your Ubuntu VM comes equipped with a firewall called ufw that you can optionally activate as described below. There is also a firewall on the VT network that sits in front of your VM which likewise controls access to services on your VM. In order for you to log into RSS on the VT VM, port 8787 must be open on the VM and on the network. The following is the default situation depending on where your VM is hosted:
+There are 2 firewalls that control access to ports on your VM. Ports are the entry point to services such as RSS; RSS listens on port 8787 by default. Your VM comes equipped with a firewall called ufw that you can optionally activate as described here. There is also a firewall on the VT network that likewise controls access to services on your VM. In order for you to log into RSS on a VT VM, port 8787 must be open on the VM and on the network. The following is the default situation depending on where your VM is hosted:
 
-1) If your VM is running under VMWare hosted on a local machine, as described in the introduction, ufw is inactive upon installation and all ports are open. Therefore, you have been able to log in via ssh and you can log into RSS at port 8787 without taking further action. If you choose to activate the firewall you need to open ports 22 (for ssh) and 8787 (for RSS) and any other ports that are required for your applications, such as 80 for websites, 3306 for MySQL (discussed below), etc.
-2) If your VM is in the VT cloud, ufw is inactive by default and port 22 is open on the network by default. Therefore you have been able to log into the VM via ssh. However, in order to log into RSS you must request port 8787 be opened on the network along with any other ports you might want.
+1) Whether your VM is running under VMWare hosted on a local machine or running in the VT cloud, ufw is inactive and all ports are open on the VM upon installation.
+2) If your VM is in the VT cloud ports 22, 8787, 3306 and 7077, plus several others, are open on the network by default [^5].
+3) In either case you have been able to log in via ssh and you can log into RSS at port 8787 without taking further action.
 
-Since all ports on the VM are open by default in either case, activating the ufw firewall on the VM is optional. The following commands will activate the firewall and open ports 22 and 8787. If you do activate the VM's firewall be certain to open port 22. Otherwise you will not be able to log back into the VM even though the port is open on the network.
+Therefore, if you choose to activate the firewall on the VM you need to open ports 22 (for ssh) and 8787 (for RSS) and any other ports that are required to complete this installation, such as 3306 for installing MySQL, which we do below.
+
+[^5]: MySQL listens on 3306. We install MySQL below. Spark clusters need port 7077. Spark is not covered here.
+
+The following commands will activate the firewall and open ports 22 and 8787. If you do activate the VM's firewall be certain to open port 22. Otherwise you will not be able to log back into the VM via a terminal window even though the port is open on the network.
 
 First open port 22. You can safely disregard the message that doing so may disrupt services and answer yes to proceed.
 ```{bash}
-# You must be logged in as root, if not already: sudo su -
+# Yous should still be logged in as root. If not: sudo su -
 ufw status verbose
 ufw enable
 ufw allow 22
@@ -160,17 +187,13 @@ ufw allow 8787
 ufw status verbose
 ```
 
-## 2.5 Verify RStudio Server Installation
-Now we verify the RSS installation.
-```{bash}
-rstudio-server verify-installation
-rstudio-server status
-```
+## 2.5 Completing the Installation Process
+Now that you have successfully installed RSS you should log into it on your VM using http://<your_VMs_ip_address>:8787 to complete the rest of the installation process. You should log into the server as user rstudio so that the packages we install below are installed in a site-wide library. All the packages will then be automatically available to any user. If you log in with your user name the package installation procedures will fail.
 
-Now that you have successfully installed RSS you should log into it on your VM using http://<your_VMs_ip_address>:8787 to complete the rest of the installation process. You can log into the server as user rstudio but we recommend you log in with your user id. This assumes you added yourself to the group rstudio as recommended above. Logging into RSS on the VM ensures that all R commands will be executed on the server as will all shell commands from the terminal window.
+After logging into RSS as user rstudio, the R console and the Terminal window will both be connected to the VM; all R and shell commands will be executed on the VM. After you log in you should upload this file using the upload button on the Files tab. This will make it very convenient to complete the installation process.
 
 # 3. Install Selected R Packages
-This section installs some selected packages into the R site-wide library.
+This section installs some selected R packages into a site-wide library.
 
 ## 3.1 Install Rcpp
 
