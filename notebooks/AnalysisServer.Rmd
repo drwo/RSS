@@ -193,139 +193,110 @@ Now that you have successfully installed RSS you should log into it on your VM u
 After logging into RSS as user rstudio, the R console and the Terminal window will both be connected to the VM; all R and shell commands will be executed on the VM. After you log in you should upload this file using the upload button on the Files tab. This will make it very convenient to complete the installation process.
 
 # 3. Install Selected R Packages
-This section installs some selected R packages into a site-wide library.
+This section installs some selected R packages into a site-wide library. You should be logged into RSS as user rstudio and have uploaded thisnote book using the Files tab.
 
-## 3.1 Install Rcpp
+## 3.1 Setting Up for System-Wide Installation
+This section sets up RSS so that user rstudio can install packages into a site-wide library making any pacakges there available to all users. The following chunk displays the site-wide libraries that are available:
 
 ```{r}
-necessary_packages <- c("plyr","tidyverse", "data.table", "lubridate",
-                        "rvest", "readxl", "knitr", "quantmod", "rtweet", "syuzhet")
-
-#quick function to check if a library is installed, if not, install, if so, load
-load_libraries <- function(lib_name){
-  # lib_name is a character vector of packages I want to load
-  if(!(lib_name %in% installed.packages())){
-    install.packages(lib_name)
-  }
-  # require will return true if the library is loaded
-  return(require(lib_name, character.only=TRUE))
-}
-
-loaded_packages <- sapply(necessary_packages, 
-                          function(x) load_libraries(x))
+# you should be working in the R console window
+.libPaths()
 ```
 
-The first package to install is Rcpp which is needed to compile packages that are written in C++, such as dplyr. In order to install into the site library we need to log in as root.
+The first library directory listed is exclusive to user rstudio. We are going to modify /usr/local/lib/R/site-library so that user rstudio can install pacakges there.
 ```{bash}
-# requires 2FA
-sudo su -
-
-R
-install.packages("Rcpp")
+# you should be in the terminal window
+cd /usr/local/lib/R
+ll
+```
+Change ownership of the directory site-library to user rstudio:
+```{bash}
+sudo chown rstudio:rstudio ./site-library
+ll
 ```
 
-Next we install selected packages while still logged in as root. In order to ensure a problem free installation  we install each package individually to catch any errors that might occur such as missing packages or libraries.
+## 3.2 Utility Installation Function
+The following utility function installs packages into the site-wide library directory now owned by rstudio. It takes as its argument a character vector of packages to install. Run this chunk from the R console to create the function.
+
+```{r}
+# you should be in the R console window
+load_packages <- function(my_packages) {
+  
+  #local function to check if a library is installed, if not, install, if so, load
+  load_a_package <- function(pack_name) {
+    # pack_name is the name of a package to install
+    if(!(pack_name %in% installed.packages())) {
+      install.packages(pack_name, lib = "/usr/local/lib/R/site-library")
+    }
+    # require will return true if the library is loaded
+    return(require(pack_name, character.only=TRUE))
+  }
+  
+  sapply(my_packages, load_a_package)  
+}
+```
+
+
+## 3.1 Install Rcpp
+The first package to install is Rcpp which is needed to compile packages that are written in C++, such as dplyr. Upon successful installation the function will return TRUE and Rcpp will be visible and loaded in the Packages window.
+
+```{r echo = FALSE}
+load_packages("Rcpp")
+```
+
 
 ## 3.2 Install "tidyverse"
-The first package we install is "tidyverse".
-
-Tidyverse is an extremely useful package. We highly recommend that it be a standard part of an R installation. The tidyverse comprises many other packages: broom, cli, crayon, dbplyr, dplyr, forcats, ggplot2, haven, hms, httr, jsonlite, lubridate, magrittr, modelr, pillar,purrr, readr, readxl, reprex, rlang, rstudioapi, rvest, stringr, tibble, tidyr, xml2, tidyverse.
+"tidyverse" is an extremely useful package. We highly recommend that it be a standard part of an R installation. The tidyverse comprises many other packages: broom, cli, crayon, dbplyr, dplyr, forcats, ggplot2, haven, hms, httr, jsonlite, lubridate, magrittr, modelr, pillar, purrr, readr, readxl, reprex, rlang, rstudioapi, rvest, stringr, tibble, tidyr, xml2, tidyverse.
 
 See: https://tidyverse.tidyverse.org/reference/tidyverse_packages.html
 
-In debugging the installation of tidyverse we know that we need to get the following Linux packages: libssl-dev, libxml2-dev, libcurl4-openssl-dev. So we need to exit R and install these.
-```{r exit.r}
-q()
-```
+Before installing tidyverse we need to get the following Linux packages: libssl-dev, libxml2-dev, libcurl4-openssl-dev. Switch to the terminal window.
 ```{bash}
-# we are still logged in as root
+# you need  be in the terminal window
+# log in as root
+sudo su -
 apt-get install libssl-dev
 apt-get install libxml2-dev
 apt-get install libcurl4-openssl-dev
+exit
 ```
 
-We are now ready to do a clean install of tidyverse. The installation is time consuming and the output is voluminous.
-Note: from above we are still logged in as root. 
-```{r}
-# renter R as root. Doing so installs the pacakges in the site-wide library
-R
-install.packages("tidyverse")
-```
-
-Check to see if world of the tidyverse has been installed in the site library:
-```{r}
-pkgs <- c("broom", "cli", "crayon", "dbplyr", "dplyr", "forcats", "ggplot2", "haven", "hms", "httr", "jsonlite", 
-          "lubridate", "magrittr", "modelr", "pillar", "purrr", "readr", "readxl", "reprex", "rlang", 
-          "rstudioapi", "rvest", "stringr", "tibble", "tidyr", "xml2", "tidyverse")
-find.package(pkgs)
+We are now ready to do a clean install of tidyverse. The installation is time consuming and the output is voluminous. Switch to the R console. 
+```{r echo = FALSE}
+tidyverse_packs <- load_packages("tidyverse")
+tidyverse_packs
 ```
 
 ## 3.3 Install Additional Pacakges
-These are packages that THW has found useful in many circumstances. They can be installed now or later, whether in the site-wide library or otherwise. Here we are installing them site-wide.
+These are packages that are useful in many circumstances:
 
-### rmarkdown
-Note: we are still logged in as root using R
-```{r}
-install.packages("rmarkdown")
-```
+1) "rmarkdown" is required for marking up notebooks. 
+2) "knitr", "caTools", "bitops", "rprojroot" enable knitting notebooks to PDFs.
+3) "shiny" is for creating shiny apps. Installing it throws a lot of warnings regarding deprecated declarations but the installation seems to conclude successfully. However, we have not tested this.
+4) "data.table" is a useful alternative to some portions of the tidyverse packages for wrangling large datasets
+5) "ggmap" and "maptools" are handy for developing map graphics and visualizations. Installation of maptools throws some warnings but appears to install successfully but we have not yet tested it.
 
-### knitr
-```{r}
-install.packages("knitr")
-```
-
-### shiny
-This throws a lot of warnings regarding deprecated declarations but the installation seems to conclude successfully. However, we have not tested this.
-```{r}
-install.packages("shiny")
-```
-
-### data.table
-```{r}
-install.packages("data.table")
-```
-
-### RMySQL
-I use MySQL as an open source relational database. Installation of MySQL is covered below. This requires libmariadbclient-dev. Exit R and get:
+Before installing these R pacakges we install the following Linux libraries that are required for knitting to PDFs.
+The 2nd command, downloading fonts and other items, may take 10 to 15 minutes. Return to the terminal window.
 ```{bash}
-# upon exiting R we are still logged in as root
-apt-get install libmariadbclient-dev
-```
-Renter R and install:
-```{r}
-install.packages("RMySQL")
-```
-
-### ggmap & maptools
-These are handy for developing map graphics and visualizations. Installation of maptools throws some warnings but appears to install successfully but I have not yet tested it.
-```{r}
-install.packages("ggmap")
-install.packages("maptools")
+sudo su -
+apt-get -y install texinfo
+apt-get -y install texlive-fonts-extra
+apt-get -y install pandoc
+exit
 ```
 
-### ineq
-```{r}
-install.packages("ineq")
+Now install the list of R packages. This will take a while. Return to the R console.
+```{r message = FALSE}
+xtra_packages <- c("caTools", "bitops", "rprojroot", "rmarkdown", "knitr", "shiny", "data.table",  "ggmap", "maptools", "ineq")
+xtra_packs <- load_packages(xtra_packages)
+xtra_packs
 ```
-
-### Packages for Knitting PDFs (Ref 4)
-Installation of the following packages for R and Linux will enable knitting notebooks and rmarkdown documents to PDFs.
-```{r}
-install.packages(c("caTools", "bitops", "rprojroot"))
-```
-
-The 2nd command, downloading fonts and other items, will take 10 to 15 minutes.
-```{bash}
-sudo apt-get -y install texinfo
-sudo apt-get -y install texlive-fonts-extra
-sudo apt-get -y install pandoc
-```
-
-### Some Additional Packages
-These are some additional packages I have found useful from time to time but I do not install them here: DT, DBI, RSQLite, tcltk2, sqldf, boot, Cairo, rgdal, tmap, rgeos. Some of these require additional libraries which if not present will cause errors upon attempting to do the installations. You can then get the libraries with "sudo apt-get install <xxx>" and properly install the desired R package.
 
 # 4. MySQL Installation (Ref 5)
-This is a simple installation procedure copied from reference 5. It sets up a MySQL administrator account, mysql, with root privileges. The same commands can be used to grant the VM's owner root privileges.
+MySQL as an open source relational database.  Here we install MySQL and an administrator accounts with full privileges.
+
+Return to the terminal window.
 ```{bash}
 # login as root
 sudo su -
@@ -335,7 +306,7 @@ apt upgrade
 apt install mysql-server
 systemctl status mysql
 ```
-Now that mysql is running let's secure it and set up administrator accounts. As matter of preference, we are not going to configure the VALIDATE_PASSWORD_PLUGIN, which is not as secure as using it. We also choose to:
+Now that mysql is running we secure it and set up administrator accounts. As matter of preference, we are not going to configure the VALIDATE_PASSWORD_PLUGIN, which is not as secure as using it. We also choose to:
 
 1) Remove anonymous users
 2) Disallow root to log in remotely
@@ -348,14 +319,14 @@ mysql_secure_installation
 ```
 Now log into mysql as root.
 ```{bash}
-sudo mysql
+mysql
 ```
-Now change the authentication method from auth_socket to mysql_native_password. See Ref 5.
+Now change the authentication method from auth_socket to mysql_native_password using the password you just set up. See Ref 5.
 ```{mysql}
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_strong_password_goes_here';
 FLUSH PRIVILEGES;
 ```
-Exit and log back into mysql as root. Note: you are not logged in to the VM as root at this point.
+Exit mysql and log back in as root.
 ```{mysql}
 exit
 mysql -u root -p
@@ -371,21 +342,32 @@ exit
 mysql -u mysql -p
 ```
 ## 4.2 Creating and Additional Admin Account
-Note that the admin account we set up is for local log in only. To set up a user that can log in from anywhere with all privileges execute the following commands logged in as the mysql user.
+Note that the admin account we set up, "mysql", is for logging in to mysql on the VM only. To set up a user that can log in from anywhere with all privileges, execute the following commands logged in as the mysql user.
 
 CREATE USER 'some_user'@'%' IDENTIFIED BY 'users_strong_password';
 GRANT ALL PRIVILEGES ON *.* TO 'some_user'@'%' IDENTIFIED BY 'users_strong_password' WITH GRANT OPTION;
 
 ## 4.1 Accessing MySQL Remotely
-MySQL listens on port 3306. Open up the port.
+MySQL listens on port 3306. If you have enabled the firewall on your VM you need to open the port. You should still be logged in as root. If not, do so.
 ```{bash}
-sudo ufw allow 3306
-sudo ufw status verbose
+ufw allow 3306
+ufw status verbose
 ```
 
-The default installation of MySQL only allows logging in locally. To enable remote log in you must edit the file /etc/mysql/mysql.conf.d changing the value of bind-address from 127.0.0.1 to 0.0.0.0. We do not cover that here.
+The default installation of MySQL only allows logging in locally. To enable remote log in you must edit the file /etc/mysql/mysql.conf.d/mysqld.cnf changing the value of the variable "bind-address" from 127.0.0.1 to 0.0.0.0. We do not cover that here.
 
-## References
+## 4.2 Package RMySQL
+The R package RMySQL is needed to access the MySQL server from an R program. We also need another Linux library. Yous should still be logged into the VM as root. If not do so.
+```{bash}
+apt-get install libmariadbclient-dev
+exit
+```
+Return to the R console and install RMySQL:
+```{r}
+load_packages("RMySQL")
+```
+
+# References
 The following articles are the sources we consulted to develop this installation kit. There is a great deal of overlap among these guides but also some differences. The installation process tested here is a composite of information from these references and steps that Bob Settlage and I previously tried out.
 
 1) https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
