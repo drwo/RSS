@@ -193,17 +193,17 @@ Now that you have successfully installed RSS you should log into it on your VM u
 After logging into RSS as user rstudio, the R console and the Terminal window will both be connected to the VM; all R and shell commands will be executed on the VM. After you log in you should upload this file using the upload button on the Files tab. This will make it very convenient to complete the installation process.
 
 # 3. Install Selected R Packages
-This section installs some selected R packages into a site-wide library. You should be logged into RSS as user rstudio and have uploaded thisnote book using the Files tab.
+This section installs some selected R packages into a site-wide library. You should be logged into RSS as user rstudio and have uploaded this notebook using the Files tab.
 
 ## 3.1 Setting Up for System-Wide Installation
-This section sets up RSS so that user rstudio can install packages into a site-wide library making any pacakges there available to all users. The following chunk displays the site-wide libraries that are available:
+This section sets up RSS so that user rstudio can install packages into a site-wide library making any packages there available to all users. The following chunk displays the site-wide libraries that are available:
 
 ```{r}
 # you should be working in the R console window
 .libPaths()
 ```
 
-The first library directory listed is exclusive to user rstudio. We are going to modify /usr/local/lib/R/site-library so that user rstudio can install pacakges there.
+The first library directory listed is exclusive to user rstudio. We are going to modify /usr/local/lib/R/site-library so that user rstudio can install packages there.
 ```{bash}
 # you should be in the terminal window
 cd /usr/local/lib/R
@@ -276,7 +276,7 @@ These are packages that are useful in many circumstances:
 4) "data.table" is a useful alternative to some portions of the tidyverse packages for wrangling large datasets
 5) "ggmap" and "maptools" are handy for developing map graphics and visualizations. Installation of maptools throws some warnings but appears to install successfully but we have not yet tested it.
 
-Before installing these R pacakges we install the following Linux libraries that are required for knitting to PDFs.
+Before installing these R packages we install the following Linux libraries that are required for knitting to PDFs.
 The 2nd command, downloading fonts and other items, may take 10 to 15 minutes. Return to the terminal window.
 ```{bash}
 sudo su -
@@ -294,7 +294,7 @@ xtra_packs
 ```
 
 # 4. MySQL Installation (Ref 5)
-MySQL as an open source relational database.  Here we install MySQL and an administrator accounts with full privileges.
+MySQL as an open source relational database.  Here we install MySQL and administrator accounts with full privileges.
 
 Return to the terminal window.
 ```{bash}
@@ -354,10 +354,10 @@ ufw allow 3306
 ufw status verbose
 ```
 
-The default installation of MySQL only allows logging in locally. To enable remote log in you must edit the file /etc/mysql/mysql.conf.d/mysqld.cnf changing the value of the variable "bind-address" from 127.0.0.1 to 0.0.0.0. We do not cover that here.
+NOTE: The default installation of MySQL only allows logging into the server from the VM. To enable remote login you must edit the file /etc/mysql/mysql.conf.d/mysqld.cnf changing the value of the variable "bind-address" from 127.0.0.1 to 0.0.0.0. You can do that by uploading the file mysqld.cnf included here and replacing the existing file on the VM. We do not cover that here.
 
 ## 4.2 Package RMySQL
-The R package RMySQL is needed to access the MySQL server from an R program. We also need another Linux library. Yous should still be logged into the VM as root. If not do so.
+The R package RMySQL is needed to access the MySQL server from an R program. We also need another Linux library. You should still be logged into the VM as root. If not do so.
 ```{bash}
 apt-get install libmariadbclient-dev
 exit
