@@ -19,21 +19,13 @@ RUN apt-get -y install texinfo && \
   apt-get -y install texlive-fonts-extra && \
   apt-get -y install pandoc
 
-# create non-sudo user rstudio and sudo user rstudioadmin
-ARG ADMIN_PASSWD="RStudio@\$Warrior99"
+# create non-sudo user rstudio with password rstudio
+# this account can be used by anyone to log into the server
 RUN useradd rstudio \
   && echo rstudio:rstudio | chpasswd \
   && mkdir /home/rstudio \
   && chown rstudio:rstudio /home/rstudio \
-  && addgroup rstudio staff \
-  && useradd rstudioadmin \
-  && echo rstudioadmin:${ADMIN_PASSWD} | chpasswd \
-  && mkdir /home/rstudioadmin \
-  && chown rstudioadmin:rstudioadmin /home/rstudioadmin \
-  && addgroup rstudioadmin staff \
-  && addgroup rstudioadmin rstudio \
-  && addgroup rstudioadmin sudo
-
+  && addgroup rstudio staff
 
 COPY ./rssdocker/run.rstudio.sh /etc/services.d/rstudio/run
 COPY ./rssdocker/finish.rstudio.sh /etc/services.d/rstudio/finish
