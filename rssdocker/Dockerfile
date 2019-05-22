@@ -1,4 +1,4 @@
-FROM rdocker
+FROM drwo/rdocker
 LABEL maintainer="Tom Woteki <drwo@vt.edu>"
 
 # We install the following Linux libraries that are required for knitting to PDFs
